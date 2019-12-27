@@ -1,0 +1,43 @@
+---
+#$$$$$$$$$$$$$$$$$$$$$$$$$$Prerequistion-first-stage$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+#======================================================================================
+#-----------------host which shouldbe affected by this playbook------------------------
+- hosts: [blah]
+#----------make the ansible as a wheel group and make permissions high-----------------
+  become: yes
+  tasks:
+#----------Put-SELINUX-in-Permessive-mode and open-firewall ports6379/6380-------------
+    - name: Put SELinux in permissive mode, Open Ports for http(s)
+      selinux:
+        policy: targeted
+        state: permissive
+#----------------------------make sure you have wheel group----------------------------
+    - name: Make sure we have a 'wheel' group
+      group:
+        name: wheel
+        state: present
+#------------------------------Add-users-chahardoli-abbasi-----------------------------
+    - name: Add the users chahardoli-abbasi with primary group of 'admin'
+      user:
+        name: "{{item}}"
+        group: wheel
+        state: present
+        password: "{{ '1' | password_hash('sha256') }}"
+        update_password: on_create
+      with_items:
+        - foo
+        - bar
+#--------------------------------------check sudoers------------------------------------
+    - name: Validate the sudoers file before saving
+      lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%ADMIN ALL='
+        line: '%ADMIN ALL=(ALL) NOPASSWD: ALL'
+        validate: /usr/sbin/visudo -cf %s
+#-------------------make users to change their passwords upon first login---------------
+    - name:
+      command: chage -d 0 {{item}}
+      with_items:
+        - foo
+        - bar
